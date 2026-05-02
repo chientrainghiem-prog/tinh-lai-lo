@@ -342,6 +342,75 @@
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Target profit section */
+  .target-card {
+    display: none;
+    background: var(--surface);
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .target-card.show { display: block; animation: slideUp .3s ease .15s both; }
+  .target-header {
+    background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(0,229,160,0.08));
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .target-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .target-input-row {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .target-input-wrap {
+    flex: 1; position: relative;
+  }
+  .target-input-wrap input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 50px 10px 14px;
+    font-size: 15px; font-weight: 600;
+    color: var(--text);
+    font-family: 'Be Vietnam Pro', sans-serif;
+    outline: none;
+    transition: border-color .2s;
+    -webkit-appearance: none;
+  }
+  .target-input-wrap input:focus { border-color: var(--accent); }
+  .target-input-wrap .input-unit { right: 12px; }
+  .target-calc-btn {
+    background: var(--accent);
+    border: none; border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px; font-weight: 600;
+    color: white; cursor: pointer;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    white-space: nowrap; flex-shrink: 0;
+    transition: opacity .15s;
+  }
+  .target-calc-btn:active { opacity: 0.8; }
+  .target-quick { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .target-rows { padding: 14px 18px; }
+  .target-result-big {
+    text-align: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .target-result-big .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .target-result-big .value { font-size: 32px; font-weight: 800; color: var(--accent); letter-spacing: -1px; }
+  .target-result-big .sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .target-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .target-row:last-child { border-bottom: none; }
+  .target-row .tl { color: var(--muted); }
+  .target-row .tv { font-weight: 600; color: var(--text); }
+  .target-row .tv.hi { color: var(--green); }
+  .target-row .tv.warn { color: var(--yellow); }
 </style>
 </head>
 <body>
@@ -462,7 +531,7 @@
       <button class="qbtn" onclick="quickSet('return-pct',20);previewPct()">20%</button>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6;">
-      Đơn hoàn: mất phí ship 2 chiều + không thu được tiền hàng
+      Đơn hoàn: mất ads + thuê TK + ship + chi phí khác (hàng trả về nên không mất giá vốn)
     </div>
   </div>
 
@@ -507,20 +576,6 @@
         <button class="qbtn" onclick="quickSet('ship',35000)">35k</button>
       </div>
     </div>
-
-    <div class="input-group">
-      <div class="input-label">Phí COD (thu hộ) — nếu có</div>
-      <div class="input-wrap">
-        <input type="number" id="cod" placeholder="0" inputmode="numeric">
-        <span class="input-unit">₫</span>
-      </div>
-      <div class="quick-btns">
-        <button class="qbtn" onclick="quickSet('cod',0)">Không có</button>
-        <button class="qbtn" onclick="quickSet('cod',5000)">5k</button>
-        <button class="qbtn" onclick="quickSet('cod',10000)">10k</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- Chi phí khác -->
@@ -570,6 +625,35 @@
 <!-- Lời khuyên -->
 <div class="advice-card" id="advice-card"></div>
 
+<!-- Target profit card -->
+<div class="target-card" id="target-card">
+  <div class="target-header">
+    <div class="target-title">🎯 Muốn lãi bao nhiêu / tháng?</div>
+    <div class="target-input-row">
+      <div class="target-input-wrap">
+        <input type="number" id="target-profit" placeholder="100,000,000" inputmode="numeric" oninput="calcTarget()">
+        <span class="input-unit">₫</span>
+      </div>
+      <button class="target-calc-btn" onclick="calcTarget()">Tính</button>
+    </div>
+    <div class="target-quick">
+      <button class="qbtn" onclick="setTarget(50000000)">50tr</button>
+      <button class="qbtn" onclick="setTarget(100000000)">100tr</button>
+      <button class="qbtn" onclick="setTarget(200000000)">200tr</button>
+      <button class="qbtn" onclick="setTarget(500000000)">500tr</button>
+    </div>
+  </div>
+  <div id="target-result" style="display:none">
+    <div class="target-result-big">
+      <div class="label">Số đơn cần bán / tháng</div>
+      <div class="value" id="target-orders">—</div>
+      <div class="sub" id="target-orders-day">— đơn / ngày</div>
+    </div>
+    <div class="target-rows" id="target-rows"></div>
+  </div>
+</div>
+
+
 <script>
 let qty = 1;
 let shipEnabled = true;
@@ -597,7 +681,7 @@ async function storageDelete() {
   } catch(e) {}
 }
 
-const SETTINGS_FIELDS = ['ads-pct','acc-pct','return-pct','vat-pct','ship','cod','extra'];
+const SETTINGS_FIELDS = ['ads-pct','acc-pct','return-pct','vat-pct','ship','extra'];
 
 async function saveSettings() {
   const data = { shipEnabled };
@@ -632,13 +716,54 @@ function updateBanner(data) {
     if (data['return-pct']) parts.push('Hoàn ' + data['return-pct'] + '%');
     if (data['vat-pct']) parts.push('VAT ' + data['vat-pct'] + '%');
     if (data['ship']) parts.push('Ship ' + parseInt(data['ship']).toLocaleString('vi-VN') + '₫');
-    if (data['cod']) parts.push('COD ' + parseInt(data['cod']).toLocaleString('vi-VN') + '₫');
     const summary = parts.join(' · ') || 'Chi phí cố định';
     banner.querySelector('.saved-banner-text').innerHTML = '<strong>Đã tải cài đặt!</strong> Chỉ nhập giá vốn & giá bán<br><span style="color:var(--muted);font-size:11px">' + summary + '</span>';
     banner.classList.add('show');
   } else {
     banner.classList.remove('show');
   }
+}
+
+
+function setTarget(val) {
+  document.getElementById('target-profit').value = val;
+  calcTarget();
+}
+
+function calcTarget() {
+  const targetEl = document.getElementById('target-profit');
+  const targetProfit = parseFloat(targetEl.value) || 0;
+  if (targetProfit <= 0) return;
+
+  // Lấy profit/đơn từ lần tính gần nhất
+  const profitPerOrder = window._lastProfitPerOrder;
+  if (!profitPerOrder || profitPerOrder <= 0) {
+    document.getElementById('target-result').style.display = 'none';
+    return;
+  }
+
+  const ordersNeeded = Math.ceil(targetProfit / profitPerOrder);
+  const ordersPerDay = Math.ceil(ordersNeeded / 30);
+  const revenueNeeded = ordersNeeded * window._lastPrice;
+  const adsBudget = revenueNeeded * (window._lastAdsPct / 100);
+  const capitalNeeded = ordersNeeded * window._lastCost;
+
+  document.getElementById('target-orders').textContent = ordersNeeded.toLocaleString('vi-VN');
+  document.getElementById('target-orders-day').textContent = ordersPerDay.toLocaleString('vi-VN') + ' đơn / ngày';
+
+  const fmtN = n => Math.round(n).toLocaleString('vi-VN') + '₫';
+
+  let rows = '';
+  rows += `<div class="target-row"><span class="tl">Mục tiêu lãi / tháng</span><span class="tv hi">${fmtN(targetProfit)}</span></div>`;
+  rows += `<div class="target-row"><span class="tl">Lãi mỗi đơn hiện tại</span><span class="tv">${fmtN(profitPerOrder)}</span></div>`;
+  rows += `<div class="target-row"><span class="tl">Số đơn cần / tháng</span><span class="tv hi">${ordersNeeded.toLocaleString('vi-VN')} đơn</span></div>`;
+  rows += `<div class="target-row"><span class="tl">Trung bình / ngày</span><span class="tv ${ordersPerDay > 50 ? 'warn' : 'hi'}">${ordersPerDay.toLocaleString('vi-VN')} đơn/ngày</span></div>`;
+  rows += `<div class="target-row"><span class="tl">Doanh thu cần / tháng</span><span class="tv">${fmtN(revenueNeeded)}</span></div>`;
+  if (window._lastAdsPct > 0) rows += `<div class="target-row"><span class="tl">Ngân sách ads cần / tháng</span><span class="tv warn">${fmtN(adsBudget)}</span></div>`;
+  rows += `<div class="target-row"><span class="tl">Vốn hàng cần / tháng</span><span class="tv">${fmtN(capitalNeeded)}</span></div>`;
+
+  document.getElementById('target-rows').innerHTML = rows;
+  document.getElementById('target-result').style.display = 'block';
 }
 
 function showToast(msg) {
@@ -698,7 +823,8 @@ function previewPct() {
     const vatAmt = price * vatPct / 100;
     // Hoàn hàng: chi phí mỗi đơn = tỉ lệ hoàn × (ship×2 + giá vốn)
     const cost = parseFloat(document.getElementById('cost').value) || 0;
-    const returnCostPerOrder = returnPct / 100 * (ship * 2 + cost);
+    // Đơn hoàn: mất ads + thuê TK + ship + extra (KHÔNG mất giá vốn vì hàng trả về)
+    const returnCostPerOrder = returnPct / 100 * (adsAmt + accAmt + ship + (parseFloat(document.getElementById('extra').value)||0));
 
     if (adsPct > 0) document.getElementById('ads-amount-label').textContent = '≈ ' + fmt(adsAmt);
     else document.getElementById('ads-amount-label').textContent = '';
@@ -726,7 +852,7 @@ function calculate() {
   const returnPct = parseFloat(document.getElementById('return-pct').value) || 0;
   const vatPct = parseFloat(document.getElementById('vat-pct').value) || 0;
   const ship   = shipEnabled ? (parseFloat(document.getElementById('ship').value) || 0) : 0;
-  const cod    = shipEnabled ? (parseFloat(document.getElementById('cod').value) || 0) : 0;
+  const cod    = 0;
   const extra  = parseFloat(document.getElementById('extra').value) || 0;
 
   if (!cost || !price) {
@@ -739,7 +865,8 @@ function calculate() {
   const accAmt    = price * accPct / 100;
   const vatAmt    = price * vatPct / 100;
   // Chi phí hoàn hàng quy về mỗi đơn = tỉ lệ hoàn × (ship 2 chiều + giá vốn bị mất)
-  const returnCost = returnPct / 100 * (ship * 2 + cost);
+  // Đơn hoàn: mất ads + thuê TK + ship + extra (KHÔNG mất giá vốn)
+  const returnCost = returnPct / 100 * (adsAmt + accAmt + ship + extra);
 
   const totalCost = cost + adsAmt + accAmt + vatAmt + ship + cod + extra + returnCost;
   const profit    = price - totalCost;
@@ -752,8 +879,11 @@ function calculate() {
   // breakeven_price = (fixedCost) / (1 - pctOfPrice)
   // fixedCost = cost + ship + cod + extra + returnPct/100*(ship*2+cost)
   // pctOfPrice = (adsPct + accPct + vatPct) / 100
-  const fixedCostForBreakeven = cost + ship + cod + extra + (returnPct/100)*(ship*2+cost);
-  const pctOfPrice = (adsPct + accPct + vatPct) / 100;
+  // Breakeven: fixedCost = cost + ship + extra; returnCost tính trên % của (ads+accAmt+ship+extra)
+  // nhưng ads/acc đã là % của price nên gộp vào pctOfPrice
+  const fixedCostForBreakeven = cost + ship + extra + (returnPct/100)*(ship + extra);
+  // returnCost cũng ăn vào ads% và acc% nên cộng thêm phần đó
+  const pctOfPrice = (adsPct + accPct + vatPct) / 100 + (returnPct/100) * (adsPct + accPct) / 100;
   const breakevenPrice = pctOfPrice < 1 ? fixedCostForBreakeven / (1 - pctOfPrice) : 0;
   const breakevenProfit = price > 0 ? (price - breakevenPrice) : 0;
 
@@ -785,7 +915,6 @@ function calculate() {
   if (accAmt > 0)    rows += `<div class="result-row"><span class="rl">Phí thuê TK ads (${accPct}%)</span><span class="rv neg">−${fmt(accAmt)}</span></div>`;
   if (shipEnabled) {
     if (ship > 0)    rows += `<div class="result-row"><span class="rl">Phí ship</span><span class="rv neg">−${fmt(ship)}</span></div>`;
-    if (cod > 0)     rows += `<div class="result-row"><span class="rl">Phí COD</span><span class="rv neg">−${fmt(cod)}</span></div>`;
   }
   if (extra > 0)     rows += `<div class="result-row"><span class="rl">Chi phí khác</span><span class="rv neg">−${fmt(extra)}</span></div>`;
   if (returnCost > 0) rows += `<div class="result-row"><span class="rl">Chi phí hoàn hàng (${returnPct}%)</span><span class="rv neg">−${fmt(returnCost)}</span></div>`;
@@ -838,8 +967,15 @@ function calculate() {
   }
   ac.innerHTML = advice;
 
+  // Lưu các giá trị để dùng cho target calculator
+  window._lastProfitPerOrder = profit;
+  window._lastPrice = price;
+  window._lastCost = cost;
+  window._lastAdsPct = adsPct;
+
   document.getElementById('result-card').classList.add('show');
   ac.classList.add('show');
+  document.getElementById('target-card').classList.add('show');
 
   setTimeout(() => {
     document.getElementById('result-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -851,7 +987,7 @@ function calculate() {
 }
 
 function resetAll() {
-  ['cost','price','ads-pct','acc-pct','return-pct','vat-pct','ship','cod','extra'].forEach(id => {
+  ['cost','price','ads-pct','acc-pct','return-pct','vat-pct','ship','extra'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
