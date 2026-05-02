@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tính Lãi Lỗ</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --border: #2e2e3e;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #00e5a0;
+    --red: #ff4d6d;
+    --yellow: #ffd166;
+    --text: #f0f0f8;
+    --muted: #7878a0;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Be Vietnam Pro', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+    padding-bottom: 32px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 20px 0 24px;
+  }
+  .header-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    margin: 0 auto 12px;
+    box-shadow: 0 8px 24px rgba(108,99,255,0.35);
+  }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card-title span { font-size: 14px; }
+
+  /* Input group */
+  .input-group { margin-bottom: 12px; }
+  .input-group:last-child { margin-bottom: 0; }
+  .input-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .input-wrap {
+    position: relative;
+    display: flex; align-items: center;
+  }
+  .input-wrap input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    padding-right: 50px;
+    font-size: 16px;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-weight: 500;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+    -webkit-appearance: none;
+  }
+  .input-wrap input:focus { border-color: var(--accent); }
+  .input-wrap input::placeholder { color: var(--muted); font-weight: 400; }
+  .input-unit {
+    position: absolute; right: 12px;
+    font-size: 12px; color: var(--muted); font-weight: 500;
+    pointer-events: none;
+  }
+
+  /* Quick fill */
+  .quick-btns {
+    display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;
+  }
+  .qbtn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+    font-family: 'Be Vietnam Pro', sans-serif;
+  }
+  .qbtn:active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Quantity row */
+  .qty-row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+  }
+  .qty-btn {
+    width: 32px; height: 32px;
+    background: var(--border);
+    border: none; border-radius: 8px;
+    color: var(--text);
+    font-size: 20px; font-weight: 300;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background .15s;
+    flex-shrink: 0;
+  }
+  .qty-btn:active { background: var(--accent); }
+  .qty-val {
+    flex: 1; text-align: center;
+    font-size: 20px; font-weight: 700;
+  }
+
+  /* Toggle ship */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .toggle-label { font-size: 13px; color: var(--text); }
+  .toggle {
+    width: 44px; height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform .2s;
+  }
+  .toggle.on::after { transform: translateX(20px); }
+
+  /* Calculate btn */
+  .calc-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #9c8fff);
+    border: none; border-radius: var(--radius);
+    padding: 16px;
+    font-size: 16px; font-weight: 700;
+    color: white;
+    cursor: pointer;
+    margin: 16px 0 12px;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    transition: opacity .2s, transform .1s;
+    box-shadow: 0 6px 20px rgba(108,99,255,0.4);
+  }
+  .calc-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+  /* Reset btn */
+  .reset-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    transition: all .15s;
+    margin-bottom: 16px;
+  }
+  .reset-btn:active { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Result */
+  .result-card {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .result-card.show { display: block; animation: slideUp .3s ease; }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-header {
+    padding: 18px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .result-main {
+    font-size: 36px; font-weight: 800;
+    letter-spacing: -1px;
+  }
+  .result-main.profit { color: var(--green); }
+  .result-main.loss { color: var(--red); }
+  .result-main.zero { color: var(--yellow); }
+
+  .result-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    margin-top: 8px;
+  }
+  .result-badge.profit { background: rgba(0,229,160,0.12); color: var(--green); }
+  .result-badge.loss { background: rgba(255,77,109,0.12); color: var(--red); }
+  .result-badge.zero { background: rgba(255,209,102,0.12); color: var(--yellow); }
+
+  .result-rows { padding: 14px 18px; }
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-row .rl { color: var(--muted); }
+  .result-row .rv { font-weight: 600; }
+  .result-row .rv.neg { color: var(--red); }
+  .result-row .rv.pos { color: var(--green); }
+  .result-row .rv.acc { color: var(--accent); }
+
+  /* Margin bar */
+  .margin-bar-wrap {
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+  }
+  .margin-bar-label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; margin-bottom: 8px;
+  }
+  .margin-bar-label span:first-child { color: var(--muted); }
+  .margin-bar-label span:last-child { font-weight: 700; }
+  .margin-bar {
+    height: 8px; background: var(--surface2);
+    border-radius: 4px; overflow: hidden;
+  }
+  .margin-fill {
+    height: 100%; border-radius: 4px;
+    transition: width .5s ease;
+  }
+  .margin-fill.profit { background: linear-gradient(90deg, var(--green), #00b4d8); }
+  .margin-fill.loss { background: var(--red); }
+
+  /* Advice */
+  .advice-card {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+  .advice-card.show { display: block; animation: slideUp .3s ease .1s both; }
+  .advice-card strong { color: var(--text); }
+
+  /* Number formatting helper */
+  input[type=number] { -moz-appearance: textfield; }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">💰</div>
+  <h1>Tính Lãi Lỗ Đơn Hàng</h1>
+  <p>Nhanh · Chính xác · Không bỏ sót chi phí</p>
+</div>
+
+<!-- Sản phẩm -->
+<div class="card">
+  <div class="card-title"><span>📦</span> Thông tin sản phẩm</div>
+
+  <div class="input-group">
+    <div class="input-label">Giá vốn (nhập hàng)</div>
+    <div class="input-wrap">
+      <input type="number" id="cost" placeholder="0" inputmode="numeric">
+      <span class="input-unit">₫</span>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickAdd('cost',50000)">+50k</button>
+      <button class="qbtn" onclick="quickAdd('cost',100000)">+100k</button>
+      <button class="qbtn" onclick="quickAdd('cost',200000)">+200k</button>
+      <button class="qbtn" onclick="quickAdd('cost',500000)">+500k</button>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <div class="input-label">Giá bán cho khách</div>
+    <div class="input-wrap">
+      <input type="number" id="price" placeholder="0" inputmode="numeric">
+      <span class="input-unit">₫</span>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickAdd('price',50000)">+50k</button>
+      <button class="qbtn" onclick="quickAdd('price',100000)">+100k</button>
+      <button class="qbtn" onclick="quickAdd('price',200000)">+200k</button>
+      <button class="qbtn" onclick="quickAdd('price',500000)">+500k</button>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <div class="input-label">Số lượng đơn</div>
+    <div class="qty-row">
+      <button class="qty-btn" onclick="changeQty(-1)">−</button>
+      <div class="qty-val" id="qty-display">1</div>
+      <button class="qty-btn" onclick="changeQty(1)">+</button>
+    </div>
+    <input type="hidden" id="qty" value="1">
+  </div>
+</div>
+
+<!-- Chi phí quảng cáo & thuê TK -->
+<div class="card">
+  <div class="card-title"><span>📣</span> Chi phí quảng cáo</div>
+
+  <div class="input-group">
+    <div class="input-label">
+      <span>Tỉ lệ chi phí ads / doanh thu</span>
+      <span id="ads-amount-label" style="color:var(--accent);font-weight:600"></span>
+    </div>
+    <div class="input-wrap">
+      <input type="number" id="ads-pct" placeholder="0" inputmode="decimal" step="0.1" oninput="previewPct()">
+      <span class="input-unit">%</span>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickSet('ads-pct',5)">5%</button>
+      <button class="qbtn" onclick="quickSet('ads-pct',10);previewPct()">10%</button>
+      <button class="qbtn" onclick="quickSet('ads-pct',15);previewPct()">15%</button>
+      <button class="qbtn" onclick="quickSet('ads-pct',20);previewPct()">20%</button>
+      <button class="qbtn" onclick="quickSet('ads-pct',30);previewPct()">30%</button>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <div class="input-label">
+      <span>Phí thuê tài khoản quảng cáo</span>
+      <span id="acc-amount-label" style="color:var(--accent);font-weight:600"></span>
+    </div>
+    <div class="input-wrap">
+      <input type="number" id="acc-pct" placeholder="0" inputmode="decimal" step="0.1" oninput="previewPct()">
+      <span class="input-unit">%</span>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickSet('acc-pct',3);previewPct()">3%</button>
+      <button class="qbtn" onclick="quickSet('acc-pct',5);previewPct()">5%</button>
+      <button class="qbtn" onclick="quickSet('acc-pct',7);previewPct()">7%</button>
+      <button class="qbtn" onclick="quickSet('acc-pct',10);previewPct()">10%</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hoàn hàng & VAT -->
+<div class="card">
+  <div class="card-title"><span>📊</span> Rủi ro & Thuế</div>
+
+  <div class="input-group">
+    <div class="input-label">
+      <span>Tỉ lệ hoàn hàng</span>
+      <span id="return-amount-label" style="color:var(--red);font-weight:600"></span>
+    </div>
+    <div class="input-wrap">
+      <input type="number" id="return-pct" placeholder="0" inputmode="decimal" step="0.1" oninput="previewPct()">
+      <span class="input-unit">%</span>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickSet('return-pct',5);previewPct()">5%</button>
+      <button class="qbtn" onclick="quickSet('return-pct',10);previewPct()">10%</button>
+      <button class="qbtn" onclick="quickSet('return-pct',15);previewPct()">15%</button>
+      <button class="qbtn" onclick="quickSet('return-pct',20);previewPct()">20%</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6;">
+      Đơn hoàn: mất phí ship 2 chiều + không thu được tiền hàng
+    </div>
+  </div>
+
+  <div class="input-group">
+    <div class="input-label">
+      <span>Thuế VAT trên doanh thu</span>
+      <span id="vat-amount-label" style="color:var(--red);font-weight:600"></span>
+    </div>
+    <div class="input-wrap">
+      <input type="number" id="vat-pct" placeholder="0" inputmode="decimal" step="0.1" oninput="previewPct()">
+      <span class="input-unit">%</span>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickSet('vat-pct',0);previewPct()">0%</button>
+      <button class="qbtn" onclick="quickSet('vat-pct',5);previewPct()">5%</button>
+      <button class="qbtn" onclick="quickSet('vat-pct',8);previewPct()">8%</button>
+      <button class="qbtn" onclick="quickSet('vat-pct',10);previewPct()">10%</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ship / COD -->
+<div class="card">
+  <div class="card-title"><span>🚚</span> Chi phí vận chuyển</div>
+
+  <div class="toggle-row">
+    <span class="toggle-label">Bên bạn trả phí ship</span>
+    <div class="toggle on" id="ship-toggle" onclick="toggleShip()"></div>
+  </div>
+
+  <div id="ship-inputs">
+    <div class="input-group">
+      <div class="input-label">Phí ship</div>
+      <div class="input-wrap">
+        <input type="number" id="ship" placeholder="0" inputmode="numeric">
+        <span class="input-unit">₫</span>
+      </div>
+      <div class="quick-btns">
+        <button class="qbtn" onclick="quickSet('ship',15000)">15k</button>
+        <button class="qbtn" onclick="quickSet('ship',20000)">20k</button>
+        <button class="qbtn" onclick="quickSet('ship',25000)">25k</button>
+        <button class="qbtn" onclick="quickSet('ship',35000)">35k</button>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Phí COD (thu hộ) — nếu có</div>
+      <div class="input-wrap">
+        <input type="number" id="cod" placeholder="0" inputmode="numeric">
+        <span class="input-unit">₫</span>
+      </div>
+      <div class="quick-btns">
+        <button class="qbtn" onclick="quickSet('cod',0)">Không có</button>
+        <button class="qbtn" onclick="quickSet('cod',5000)">5k</button>
+        <button class="qbtn" onclick="quickSet('cod',10000)">10k</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chi phí khác -->
+<div class="card">
+  <div class="card-title"><span>🗂</span> Chi phí khác (tuỳ chọn)</div>
+  <div class="input-group">
+    <div class="input-label">Đóng gói, túi, nhãn, v.v...</div>
+    <div class="input-wrap">
+      <input type="number" id="extra" placeholder="0" inputmode="numeric">
+      <span class="input-unit">₫</span>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickSet('extra',2000)">2k</button>
+      <button class="qbtn" onclick="quickSet('extra',5000)">5k</button>
+      <button class="qbtn" onclick="quickSet('extra',10000)">10k</button>
+    </div>
+  </div>
+</div>
+
+<button class="calc-btn" onclick="calculate()">⚡ Tính Lãi / Lỗ</button>
+<button class="reset-btn" onclick="resetAll()">↺ Nhập lại</button>
+
+<!-- Kết quả -->
+<div class="result-card" id="result-card">
+  <div class="result-header">
+    <div class="result-label">Lãi / Lỗ mỗi đơn</div>
+    <div class="result-main" id="result-main">0₫</div>
+    <div class="result-badge" id="result-badge"></div>
+  </div>
+
+  <div class="result-rows" id="result-rows"></div>
+
+  <div class="margin-bar-wrap">
+    <div class="margin-bar-label">
+      <span>Biên lợi nhuận</span>
+      <span id="margin-pct">0%</span>
+    </div>
+    <div class="margin-bar">
+      <div class="margin-fill profit" id="margin-fill" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Lời khuyên -->
+<div class="advice-card" id="advice-card"></div>
+
+<script>
+let qty = 1;
+let shipEnabled = true;
+
+function changeQty(d) {
+  qty = Math.max(1, qty + d);
+  document.getElementById('qty-display').textContent = qty;
+  document.getElementById('qty').value = qty;
+  previewPct();
+}
+
+function toggleShip() {
+  shipEnabled = !shipEnabled;
+  const t = document.getElementById('ship-toggle');
+  const si = document.getElementById('ship-inputs');
+  t.classList.toggle('on', shipEnabled);
+  si.style.display = shipEnabled ? 'block' : 'none';
+  if (!shipEnabled) {
+    document.getElementById('ship').value = '';
+    document.getElementById('cod').value = '';
+  }
+  previewPct();
+}
+
+function quickAdd(id, val) {
+  const el = document.getElementById(id);
+  el.value = (parseFloat(el.value) || 0) + val;
+  previewPct();
+}
+function quickSet(id, val) {
+  document.getElementById(id).value = val;
+  previewPct();
+}
+
+function fmt(n) {
+  return Math.round(n).toLocaleString('vi-VN') + '₫';
+}
+
+function previewPct() {
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  const ship = shipEnabled ? (parseFloat(document.getElementById('ship').value) || 0) : 0;
+
+  const adsPct = parseFloat(document.getElementById('ads-pct').value) || 0;
+  const accPct = parseFloat(document.getElementById('acc-pct').value) || 0;
+  const returnPct = parseFloat(document.getElementById('return-pct').value) || 0;
+  const vatPct = parseFloat(document.getElementById('vat-pct').value) || 0;
+
+  if (price > 0) {
+    const adsAmt = price * adsPct / 100;
+    const accAmt = price * accPct / 100;
+    const vatAmt = price * vatPct / 100;
+    // Hoàn hàng: chi phí mỗi đơn = tỉ lệ hoàn × (ship×2 + giá vốn)
+    const cost = parseFloat(document.getElementById('cost').value) || 0;
+    const returnCostPerOrder = returnPct / 100 * (ship * 2 + cost);
+
+    if (adsPct > 0) document.getElementById('ads-amount-label').textContent = '≈ ' + fmt(adsAmt);
+    else document.getElementById('ads-amount-label').textContent = '';
+
+    if (accPct > 0) document.getElementById('acc-amount-label').textContent = '≈ ' + fmt(accAmt);
+    else document.getElementById('acc-amount-label').textContent = '';
+
+    if (returnPct > 0) document.getElementById('return-amount-label').textContent = '≈ ' + fmt(returnCostPerOrder) + '/đơn';
+    else document.getElementById('return-amount-label').textContent = '';
+
+    if (vatPct > 0) document.getElementById('vat-amount-label').textContent = '≈ ' + fmt(vatAmt);
+    else document.getElementById('vat-amount-label').textContent = '';
+  } else {
+    ['ads-amount-label','acc-amount-label','return-amount-label','vat-amount-label'].forEach(id => {
+      document.getElementById(id).textContent = '';
+    });
+  }
+}
+
+function calculate() {
+  const cost   = parseFloat(document.getElementById('cost').value) || 0;
+  const price  = parseFloat(document.getElementById('price').value) || 0;
+  const adsPct = parseFloat(document.getElementById('ads-pct').value) || 0;
+  const accPct = parseFloat(document.getElementById('acc-pct').value) || 0;
+  const returnPct = parseFloat(document.getElementById('return-pct').value) || 0;
+  const vatPct = parseFloat(document.getElementById('vat-pct').value) || 0;
+  const ship   = shipEnabled ? (parseFloat(document.getElementById('ship').value) || 0) : 0;
+  const cod    = shipEnabled ? (parseFloat(document.getElementById('cod').value) || 0) : 0;
+  const extra  = parseFloat(document.getElementById('extra').value) || 0;
+
+  if (!cost || !price) {
+    alert('Vui lòng nhập giá vốn và giá bán!');
+    return;
+  }
+
+  // Tính chi phí theo %
+  const adsAmt    = price * adsPct / 100;
+  const accAmt    = price * accPct / 100;
+  const vatAmt    = price * vatPct / 100;
+  // Chi phí hoàn hàng quy về mỗi đơn = tỉ lệ hoàn × (ship 2 chiều + giá vốn bị mất)
+  const returnCost = returnPct / 100 * (ship * 2 + cost);
+
+  const totalCost = cost + adsAmt + accAmt + vatAmt + ship + cod + extra + returnCost;
+  const profit    = price - totalCost;
+  const profitTotal = profit * qty;
+  const margin    = price > 0 ? (profit / price * 100) : 0;
+  const roi       = totalCost > 0 ? (profit / totalCost * 100) : 0;
+
+  // Result main
+  const rm = document.getElementById('result-main');
+  const rb = document.getElementById('result-badge');
+  rm.textContent = fmt(profit);
+
+  if (profit > 0) {
+    rm.className = 'result-main profit';
+    rb.className = 'result-badge profit';
+    rb.textContent = '✅ Có lãi';
+  } else if (profit < 0) {
+    rm.className = 'result-main loss';
+    rb.className = 'result-badge loss';
+    rb.textContent = '❌ Đang lỗ';
+  } else {
+    rm.className = 'result-main zero';
+    rb.className = 'result-badge zero';
+    rb.textContent = '⚠️ Hoà vốn';
+  }
+
+  // Chi tiết rows
+  let rows = `
+    <div class="result-row"><span class="rl">Giá bán</span><span class="rv acc">${fmt(price)}</span></div>
+    <div class="result-row"><span class="rl">Giá vốn</span><span class="rv neg">−${fmt(cost)}</span></div>
+  `;
+  if (adsAmt > 0)    rows += `<div class="result-row"><span class="rl">Chi phí ads (${adsPct}%)</span><span class="rv neg">−${fmt(adsAmt)}</span></div>`;
+  if (accAmt > 0)    rows += `<div class="result-row"><span class="rl">Phí thuê TK ads (${accPct}%)</span><span class="rv neg">−${fmt(accAmt)}</span></div>`;
+  if (shipEnabled) {
+    if (ship > 0)    rows += `<div class="result-row"><span class="rl">Phí ship</span><span class="rv neg">−${fmt(ship)}</span></div>`;
+    if (cod > 0)     rows += `<div class="result-row"><span class="rl">Phí COD</span><span class="rv neg">−${fmt(cod)}</span></div>`;
+  }
+  if (extra > 0)     rows += `<div class="result-row"><span class="rl">Chi phí khác</span><span class="rv neg">−${fmt(extra)}</span></div>`;
+  if (returnCost > 0) rows += `<div class="result-row"><span class="rl">Chi phí hoàn hàng (${returnPct}%)</span><span class="rv neg">−${fmt(returnCost)}</span></div>`;
+  if (vatAmt > 0)    rows += `<div class="result-row"><span class="rl">Thuế VAT (${vatPct}%)</span><span class="rv neg">−${fmt(vatAmt)}</span></div>`;
+
+  rows += `<div class="result-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px"><span class="rl" style="font-weight:600;color:var(--text)">Tổng chi phí</span><span class="rv neg" style="font-weight:700">−${fmt(totalCost)}</span></div>`;
+  rows += `<div class="result-row"><span class="rl" style="font-weight:600;color:var(--text)">Lãi / Lỗ / đơn</span><span class="rv ${profit>=0?'pos':'neg'}" style="font-weight:700">${profit>=0?'+':''}${fmt(profit)}</span></div>`;
+
+  if (qty > 1) rows += `<div class="result-row"><span class="rl">Lãi/lỗ × ${qty} đơn</span><span class="rv ${profit>=0?'pos':'neg'}">${profit>=0?'+':''}${fmt(profitTotal)}</span></div>`;
+  rows += `<div class="result-row"><span class="rl">ROI</span><span class="rv ${roi>=0?'pos':'neg'}">${roi.toFixed(1)}%</span></div>`;
+
+  document.getElementById('result-rows').innerHTML = rows;
+
+  // Margin bar
+  const pct = Math.min(Math.max(margin, 0), 100);
+  document.getElementById('margin-pct').textContent = margin.toFixed(1) + '%';
+  const fill = document.getElementById('margin-fill');
+  fill.className = 'margin-fill ' + (profit >= 0 ? 'profit' : 'loss');
+  fill.style.width = pct + '%';
+
+  // Advice
+  const ac = document.getElementById('advice-card');
+  let advice = '';
+  const breakeven = totalCost;
+
+  if (profit < 0) {
+    advice = `<strong>❌ Đang lỗ ${fmt(Math.abs(profit))}/đơn.</strong> Giá bán tối thiểu để hoà vốn: <strong>${fmt(breakeven)}</strong>. Kiểm tra lại chi phí ads (${adsPct}%) và tỉ lệ hoàn (${returnPct}%) — đây thường là 2 nguyên nhân chính.`;
+  } else if (returnPct > 20) {
+    advice = `<strong>⚠️ Tỉ lệ hoàn hàng cao (${returnPct}%)!</strong> Dù đang có lãi <strong>${fmt(profit)}/đơn</strong>, hoàn hàng cao đang ăn mòn lợi nhuận nghiêm trọng. Nên tối ưu chất lượng sản phẩm và mô tả để giảm hoàn về dưới 15%.`;
+  } else if (margin < 15) {
+    advice = `<strong>⚠️ Biên lợi nhuận mỏng (${margin.toFixed(1)}%).</strong> Rủi ro cao — chỉ cần tỉ lệ hoàn tăng nhẹ hoặc ads kém hiệu quả hơn là lỗ ngay. Nên tăng giá bán hoặc giảm chi phí ads.`;
+  } else if (margin >= 15 && margin < 30) {
+    advice = `<strong>✅ Biên lợi nhuận ổn (${margin.toFixed(1)}%).</strong> Đang có lãi <strong>${fmt(profit)}/đơn</strong>. Giữ tỉ lệ hoàn dưới 15% và chi phí ads ổn định để bảo toàn margin.`;
+  } else {
+    advice = `<strong>🔥 Margin tốt (${margin.toFixed(1)}%) — lãi ${fmt(profit)}/đơn!</strong> Có thể tăng ngân sách ads để scale mạnh. Đảm bảo kiểm soát tỉ lệ hoàn hàng khi scale.`;
+  }
+  ac.innerHTML = advice;
+
+  document.getElementById('result-card').classList.add('show');
+  ac.classList.add('show');
+
+  setTimeout(() => {
+    document.getElementById('result-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+
+  if (window.Telegram?.WebApp?.HapticFeedback) {
+    Telegram.WebApp.HapticFeedback.impactOccurred(profit >= 0 ? 'medium' : 'heavy');
+  }
+}
+
+function resetAll() {
+  ['cost','price','ads-pct','acc-pct','return-pct','vat-pct','ship','cod','extra'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['ads-amount-label','acc-amount-label','return-amount-label','vat-amount-label'].forEach(id => {
+    document.getElementById(id).textContent = '';
+  });
+  qty = 1;
+  document.getElementById('qty-display').textContent = '1';
+  document.getElementById('result-card').classList.remove('show');
+  document.getElementById('advice-card').classList.remove('show');
+  if (!shipEnabled) toggleShip();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Realtime preview khi nhập giá
+document.addEventListener('DOMContentLoaded', () => {
+  ['cost','price','ship','cod','extra'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', previewPct);
+  });
+});
+
+if (window.Telegram?.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+</script>
+</body>
+</html>
