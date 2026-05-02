@@ -302,10 +302,57 @@
   input[type=number] { -moz-appearance: textfield; }
   input[type=number]::-webkit-outer-spin-button,
   input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .saved-banner {
+    display: none;
+    background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(0,229,160,0.1));
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    font-size: 13px; color: var(--text); line-height: 1.6;
+  }
+  .saved-banner.show { display: flex; align-items: center; gap: 10px; }
+  .saved-banner-icon { font-size: 20px; flex-shrink: 0; }
+  .saved-banner-text { flex: 1; }
+  .saved-banner-text strong { color: var(--green); }
+  .saved-banner-clear {
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px 10px;
+    font-size: 11px; color: var(--muted); cursor: pointer;
+    font-family: 'Be Vietnam Pro', sans-serif; transition: all .15s; flex-shrink: 0;
+  }
+  .saved-banner-clear:active { border-color: var(--red); color: var(--red); }
+  .save-btn {
+    width: 100%; background: transparent;
+    border: 1px solid rgba(108,99,255,0.4); border-radius: var(--radius);
+    padding: 12px; font-size: 14px; font-weight: 500; color: var(--accent);
+    cursor: pointer; font-family: 'Be Vietnam Pro', sans-serif;
+    transition: all .15s; margin-bottom: 8px;
+  }
+  .save-btn:active { background: rgba(108,99,255,0.1); }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 20px;
+    font-size: 13px; font-weight: 500; color: var(--text);
+    transition: transform .3s ease; z-index: 999;
+    white-space: nowrap; pointer-events: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
 
+
+<!-- Saved settings banner -->
+<div class="saved-banner" id="saved-banner">
+  <div class="saved-banner-icon">💾</div>
+  <div class="saved-banner-text"><strong>Đã tải cài đặt đã lưu!</strong><br><span style="color:var(--muted);font-size:12px">Chỉ cần nhập giá vốn & giá bán là xong</span></div>
+  <button class="saved-banner-clear" onclick="clearSettings()">Xoá</button>
+</div>
 <div class="header">
   <div class="header-icon">💰</div>
   <h1>Tính Lãi Lỗ Đơn Hàng</h1>
@@ -494,7 +541,10 @@
 </div>
 
 <button class="calc-btn" onclick="calculate()">⚡ Tính Lãi / Lỗ</button>
-<button class="reset-btn" onclick="resetAll()">↺ Nhập lại</button>
+<button class="save-btn" onclick="saveSettings()">💾 Lưu cài đặt mặc định</button>
+<button class="reset-btn" onclick="resetAll()">↺ Nhập lại đơn mới</button>
+
+<div class="toast" id="toast"></div>
 
 <!-- Kết quả -->
 <div class="result-card" id="result-card">
@@ -523,6 +573,81 @@
 <script>
 let qty = 1;
 let shipEnabled = true;
+
+
+// ─── Storage helpers ───
+const SETTINGS_KEY = 'profit_settings_v1';
+async function storageSave(data) {
+  try {
+    if (window.storage) { await window.storage.set(SETTINGS_KEY, JSON.stringify(data)); }
+    else { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); }
+    return true;
+  } catch(e) { return false; }
+}
+async function storageLoad() {
+  try {
+    if (window.storage) { const r = await window.storage.get(SETTINGS_KEY); return r ? JSON.parse(r.value) : null; }
+    else { const v = localStorage.getItem(SETTINGS_KEY); return v ? JSON.parse(v) : null; }
+  } catch(e) { return null; }
+}
+async function storageDelete() {
+  try {
+    if (window.storage) { await window.storage.delete(SETTINGS_KEY); }
+    else { localStorage.removeItem(SETTINGS_KEY); }
+  } catch(e) {}
+}
+
+const SETTINGS_FIELDS = ['ads-pct','acc-pct','return-pct','vat-pct','ship','cod','extra'];
+
+async function saveSettings() {
+  const data = { shipEnabled };
+  SETTINGS_FIELDS.forEach(id => { const el = document.getElementById(id); data[id] = el ? el.value : ''; });
+  const ok = await storageSave(data);
+  showToast(ok ? '✅ Đã lưu cài đặt mặc định!' : '⚠️ Lưu thất bại');
+  if (ok) updateBanner(data);
+}
+
+async function loadSettings() {
+  const data = await storageLoad();
+  if (!data) return;
+  SETTINGS_FIELDS.forEach(id => { const el = document.getElementById(id); if (el && data[id]) el.value = data[id]; });
+  if (data.shipEnabled === false && shipEnabled) toggleShip();
+  updateBanner(data);
+  previewPct();
+}
+
+async function clearSettings() {
+  await storageDelete();
+  document.getElementById('saved-banner').classList.remove('show');
+  showToast('🗑 Đã xoá cài đặt đã lưu');
+}
+
+function updateBanner(data) {
+  const hasData = SETTINGS_FIELDS.some(id => data[id] && data[id] !== '' && data[id] !== '0');
+  const banner = document.getElementById('saved-banner');
+  if (hasData) {
+    const parts = [];
+    if (data['ads-pct']) parts.push('Ads ' + data['ads-pct'] + '%');
+    if (data['acc-pct']) parts.push('Thuê TK ' + data['acc-pct'] + '%');
+    if (data['return-pct']) parts.push('Hoàn ' + data['return-pct'] + '%');
+    if (data['vat-pct']) parts.push('VAT ' + data['vat-pct'] + '%');
+    if (data['ship']) parts.push('Ship ' + parseInt(data['ship']).toLocaleString('vi-VN') + '₫');
+    if (data['cod']) parts.push('COD ' + parseInt(data['cod']).toLocaleString('vi-VN') + '₫');
+    const summary = parts.join(' · ') || 'Chi phí cố định';
+    banner.querySelector('.saved-banner-text').innerHTML = '<strong>Đã tải cài đặt!</strong> Chỉ nhập giá vốn & giá bán<br><span style="color:var(--muted);font-size:11px">' + summary + '</span>';
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
 
 function changeQty(d) {
   qty = Math.max(1, qty + d);
@@ -723,6 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', previewPct);
   });
+  loadSettings();
 });
 
 if (window.Telegram?.WebApp) {
