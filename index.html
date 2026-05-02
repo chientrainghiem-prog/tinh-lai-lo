@@ -495,7 +495,7 @@
 
   <div class="input-group">
     <div class="input-label">
-      <span>Phí thuê tài khoản quảng cáo</span>
+      <span>Phí thuê tài khoản quảng cáo (% của tiền ads)</span>
       <span id="acc-amount-label" style="color:var(--accent);font-weight:600"></span>
     </div>
     <div class="input-wrap">
@@ -820,7 +820,7 @@ function previewPct() {
 
   if (price > 0) {
     const adsAmt = price * adsPct / 100;
-    const accAmt = price * accPct / 100;
+    const accAmt = adsAmt * accPct / 100;
     const vatAmt = price * vatPct / 100;
     // Hoàn hàng: chi phí mỗi đơn = tỉ lệ hoàn × (ship×2 + giá vốn)
     const cost = parseFloat(document.getElementById('cost').value) || 0;
@@ -830,7 +830,7 @@ function previewPct() {
     if (adsPct > 0) document.getElementById('ads-amount-label').textContent = '≈ ' + fmt(adsAmt);
     else document.getElementById('ads-amount-label').textContent = '';
 
-    if (accPct > 0) document.getElementById('acc-amount-label').textContent = '≈ ' + fmt(accAmt);
+    if (accPct > 0) document.getElementById('acc-amount-label').textContent = '≈ ' + fmt(adsAmt * accPct / 100) + ' (' + accPct + '% của ' + fmt(adsAmt) + ')';
     else document.getElementById('acc-amount-label').textContent = '';
 
     if (returnPct > 0) document.getElementById('return-amount-label').textContent = '≈ ' + fmt(returnCostPerOrder) + '/đơn';
@@ -863,10 +863,10 @@ function calculate() {
 
   // Tính chi phí theo %
   const adsAmt    = price * adsPct / 100;
-  const accAmt    = price * accPct / 100;
+  const accAmt    = adsAmt * accPct / 100;
   const vatAmt    = price * vatPct / 100;
   // Chi phí hoàn hàng quy về mỗi đơn = tỉ lệ hoàn × (ship 2 chiều + giá vốn bị mất)
-  // Đơn hoàn: mất ads + thuê TK + ship + extra (KHÔNG mất giá vốn)
+  // Đơn hoàn: mất ads + thuê TK(của ads) + ship + extra (KHÔNG mất giá vốn)
   const returnCost = returnPct / 100 * (adsAmt + accAmt + ship + extra);
 
   const totalCost = cost + adsAmt + accAmt + vatAmt + ship + cod + extra + returnCost;
@@ -884,7 +884,10 @@ function calculate() {
   // nhưng ads/acc đã là % của price nên gộp vào pctOfPrice
   const fixedCostForBreakeven = cost + ship + extra + (returnPct/100)*(ship + extra);
   // returnCost cũng ăn vào ads% và acc% nên cộng thêm phần đó
-  const pctOfPrice = (adsPct + accPct + vatPct) / 100 + (returnPct/100) * (adsPct + accPct) / 100;
+  // accAmt = adsAmt * accPct/100 = price * adsPct/100 * accPct/100
+  // Tổng % trên giá bán: ads + acc(của ads) + vat + return ảnh hưởng ads+acc
+  const effectiveAdsPct = adsPct * (1 + accPct/100);
+  const pctOfPrice = (effectiveAdsPct + vatPct) / 100 + (returnPct/100) * effectiveAdsPct / 100;
   const breakevenPrice = pctOfPrice < 1 ? fixedCostForBreakeven / (1 - pctOfPrice) : 0;
   const breakevenProfit = price > 0 ? (price - breakevenPrice) : 0;
 
@@ -913,7 +916,7 @@ function calculate() {
     <div class="result-row"><span class="rl">Giá vốn</span><span class="rv neg">−${fmt(cost)}</span></div>
   `;
   if (adsAmt > 0)    rows += `<div class="result-row"><span class="rl">Chi phí ads (${adsPct}%)</span><span class="rv neg">−${fmt(adsAmt)}</span></div>`;
-  if (accAmt > 0)    rows += `<div class="result-row"><span class="rl">Phí thuê TK ads (${accPct}%)</span><span class="rv neg">−${fmt(accAmt)}</span></div>`;
+  if (accAmt > 0)    rows += `<div class="result-row"><span class="rl">Phí thuê TK (${accPct}% của ads)</span><span class="rv neg">−${fmt(accAmt)}</span></div>`;
   if (shipEnabled) {
     if (ship > 0)    rows += `<div class="result-row"><span class="rl">Phí ship</span><span class="rv neg">−${fmt(ship)}</span></div>`;
   }
