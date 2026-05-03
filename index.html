@@ -411,6 +411,89 @@
   .target-row .tv { font-weight: 600; color: var(--text); }
   .target-row .tv.hi { color: var(--green); }
   .target-row .tv.warn { color: var(--yellow); }
+
+  /* Multi product tabs */
+  .product-tabs-wrap {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+    margin-bottom: 16px; scrollbar-width: none;
+  }
+  .product-tabs-wrap::-webkit-scrollbar { display: none; }
+  .product-tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-size: 13px; font-weight: 500;
+    color: var(--muted); cursor: pointer;
+    white-space: nowrap; flex-shrink: 0;
+    transition: all .15s;
+    font-family: 'Be Vietnam Pro', sans-serif;
+  }
+  .product-tab.active {
+    background: var(--accent); color: white;
+    border-color: var(--accent);
+  }
+  .product-tab .tab-close {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; line-height: 1;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .product-tab.active .tab-close:hover { background: rgba(255,255,255,0.4); }
+  .add-product-btn {
+    padding: 7px 14px; border-radius: 10px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    font-size: 13px; font-weight: 500;
+    color: var(--muted); cursor: pointer;
+    white-space: nowrap; flex-shrink: 0;
+    transition: all .15s;
+    font-family: 'Be Vietnam Pro', sans-serif;
+  }
+  .add-product-btn:active { border-color: var(--accent); color: var(--accent); }
+
+  /* Summary card */
+  .summary-card {
+    display: none;
+    background: var(--surface);
+    border: 1px solid rgba(0,229,160,0.3);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .summary-card.show { display: block; animation: slideUp .3s ease; }
+  .summary-header {
+    background: linear-gradient(135deg, rgba(0,229,160,0.12), rgba(108,99,255,0.08));
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px; font-weight: 600; color: var(--green);
+  }
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 18px; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .sl { color: var(--muted); flex: 1; }
+  .summary-row .sv { font-weight: 600; }
+  .summary-row .sv.pos { color: var(--green); }
+  .summary-row .sv.neg { color: var(--red); }
+  .summary-row .sv.acc { color: var(--accent); }
+  .product-name-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px; font-weight: 500;
+    color: var(--text);
+    font-family: 'Be Vietnam Pro', sans-serif;
+    outline: none; margin-bottom: 16px;
+    transition: border-color .2s;
+    -webkit-appearance: none;
+  }
+  .product-name-input:focus { border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -429,9 +512,15 @@
   <p style="margin-top:6px;font-size:12px;color:var(--muted);opacity:0.6;">Bot by <strong style="color:var(--accent);">CHIDU VN</strong></p>
 </div>
 
+
+<!-- Product tabs -->
+<div class="product-tabs-wrap" id="product-tabs"></div>
+
 <!-- Sản phẩm -->
 <div class="card">
   <div class="card-title"><span>📦</span> Thông tin sản phẩm</div>
+
+  <input type="text" class="product-name-input" id="product-name" placeholder="Tên sản phẩm (VD: Cốc inox iMat)" maxlength="40">
 
   <div class="input-group">
     <div class="input-label">Giá vốn (nhập hàng)</div>
@@ -627,6 +716,13 @@
 <!-- Lời khuyên -->
 <div class="advice-card" id="advice-card"></div>
 
+
+<!-- Summary nhiều sản phẩm -->
+<div class="summary-card" id="summary-card">
+  <div class="summary-header">📊 Tổng hợp tất cả sản phẩm</div>
+  <div id="summary-rows"></div>
+</div>
+
 <!-- Target profit card -->
 <div class="target-card" id="target-card">
   <div class="target-header">
@@ -659,6 +755,162 @@
 <script>
 let qty = 1;
 let shipEnabled = true;
+
+// ─── Multi-product state ───
+let products = []; // [{id, name, profit, price, cost, adsPct, qty, result}]
+let activeProductId = null;
+
+function genId() { return 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2,5); }
+
+function renderTabs() {
+  const wrap = document.getElementById('product-tabs');
+  let html = '';
+  products.forEach(p => {
+    const isActive = p.id === activeProductId;
+    const name = p.name || 'Sản phẩm';
+    const badge = p.profit !== null ? (p.profit >= 0 ? ' ✅' : ' ❌') : '';
+    html += `<button class="product-tab ${isActive?'active':''}" onclick="switchProduct('${p.id}')">
+      ${name}${badge}
+      ${products.length > 1 ? `<span class="tab-close" onclick="removeProduct(event,'${p.id}')">×</span>` : ''}
+    </button>`;
+  });
+  html += `<button class="add-product-btn" onclick="addProduct()">＋ Thêm SP</button>`;
+  wrap.innerHTML = html;
+}
+
+function addProduct() {
+  // Lưu state hiện tại trước khi thêm
+  if (activeProductId) saveCurrentState();
+  const id = genId();
+  products.push({ id, name: '', profit: null, price: 0, cost: 0, adsPct: 0, qty: 1, state: null });
+  activeProductId = id;
+  renderTabs();
+  resetFormOnly();
+  // Load saved settings vào sản phẩm mới
+  loadSettings();
+  document.getElementById('product-name').value = '';
+  document.getElementById('cost').value = '';
+  document.getElementById('price').value = '';
+  document.getElementById('result-card').classList.remove('show');
+  document.getElementById('advice-card').classList.remove('show');
+  document.getElementById('target-card').classList.remove('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('✅ Đã thêm sản phẩm mới');
+}
+
+function removeProduct(e, id) {
+  e.stopPropagation();
+  if (products.length <= 1) return;
+  products = products.filter(p => p.id !== id);
+  if (activeProductId === id) {
+    activeProductId = products[products.length - 1].id;
+    loadProductState(products[products.length - 1]);
+  }
+  renderTabs();
+  renderSummary();
+  showToast('🗑 Đã xoá sản phẩm');
+}
+
+function switchProduct(id) {
+  if (id === activeProductId) return;
+  saveCurrentState();
+  activeProductId = id;
+  const p = products.find(x => x.id === id);
+  if (p) loadProductState(p);
+  renderTabs();
+}
+
+function saveCurrentState() {
+  const p = products.find(x => x.id === activeProductId);
+  if (!p) return;
+  p.name = document.getElementById('product-name').value;
+  p.state = {
+    cost: document.getElementById('cost').value,
+    price: document.getElementById('price').value,
+    'ads-pct': document.getElementById('ads-pct').value,
+    'acc-pct': document.getElementById('acc-pct').value,
+    'return-pct': document.getElementById('return-pct').value,
+    'vat-pct': document.getElementById('vat-pct').value,
+    ship: document.getElementById('ship').value,
+    extra: document.getElementById('extra').value,
+    qty: qty,
+    shipEnabled: shipEnabled
+  };
+}
+
+function loadProductState(p) {
+  if (!p.state) { resetFormOnly(); loadSettings(); document.getElementById('product-name').value = p.name || ''; document.getElementById('cost').value = ''; document.getElementById('price').value = ''; return; }
+  document.getElementById('product-name').value = p.name || '';
+  const s = p.state;
+  ['cost','price','ads-pct','acc-pct','return-pct','vat-pct','ship','extra'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = s[id] || '';
+  });
+  qty = s.qty || 1;
+  document.getElementById('qty-display').textContent = qty;
+  if (s.shipEnabled === false && shipEnabled) toggleShip();
+  else if (s.shipEnabled !== false && !shipEnabled) toggleShip();
+  if (p.profit !== null) {
+    document.getElementById('result-card').classList.add('show');
+    document.getElementById('advice-card').classList.add('show');
+    document.getElementById('target-card').classList.add('show');
+  } else {
+    document.getElementById('result-card').classList.remove('show');
+    document.getElementById('advice-card').classList.remove('show');
+    document.getElementById('target-card').classList.remove('show');
+  }
+  previewPct();
+}
+
+function resetFormOnly() {
+  ['cost','price','ads-pct','acc-pct','return-pct','vat-pct','ship','extra'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  qty = 1;
+  document.getElementById('qty-display').textContent = '1';
+  if (!shipEnabled) toggleShip();
+}
+
+function renderSummary() {
+  const calculated = products.filter(p => p.profit !== null);
+  const summaryCard = document.getElementById('summary-card');
+  if (calculated.length < 2) { summaryCard.classList.remove('show'); return; }
+
+  const fmt = n => Math.round(n).toLocaleString('vi-VN') + '₫';
+  let rows = '';
+
+  // Header từng sản phẩm
+  calculated.forEach(p => {
+    const name = p.name || 'Sản phẩm';
+    rows += `<div class="summary-row" style="background:rgba(108,99,255,0.04)">
+      <span class="sl" style="font-weight:600;color:var(--text)">${name}</span>
+      <span class="sv ${p.profit>=0?'pos':'neg'}">${p.profit>=0?'+':''}${fmt(p.profit)}/đơn</span>
+    </div>`;
+    rows += `<div class="summary-row"><span class="sl" style="padding-left:12px">Giá bán</span><span class="sv acc">${fmt(p.price)}</span></div>`;
+    const totalP = p.profit * (p.qty||1);
+    if ((p.qty||1) > 1) rows += `<div class="summary-row"><span class="sl" style="padding-left:12px">Lãi × ${p.qty} đơn</span><span class="sv ${totalP>=0?'pos':'neg'}">${totalP>=0?'+':''}${fmt(totalP)}</span></div>`;
+  });
+
+  // Tổng hợp
+  const totalRevenue = calculated.reduce((s,p) => s + p.price*(p.qty||1), 0);
+  const totalProfit = calculated.reduce((s,p) => s + p.profit*(p.qty||1), 0);
+  const bestProduct = calculated.reduce((a,b) => a.profit > b.profit ? a : b);
+  const worstProduct = calculated.reduce((a,b) => a.profit < b.profit ? a : b);
+
+  rows += `<div class="summary-row" style="border-top:2px solid var(--border);margin-top:2px">
+    <span class="sl" style="font-weight:700;color:var(--text)">Tổng doanh thu</span>
+    <span class="sv acc">${fmt(totalRevenue)}</span>
+  </div>`;
+  rows += `<div class="summary-row">
+    <span class="sl" style="font-weight:700;color:var(--text)">Tổng lãi / lỗ</span>
+    <span class="sv ${totalProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${totalProfit>=0?'+':''}${fmt(totalProfit)}</span>
+  </div>`;
+  rows += `<div class="summary-row"><span class="sl">🏆 Lãi cao nhất</span><span class="sv pos">${bestProduct.name||'SP'} (+${fmt(bestProduct.profit)})</span></div>`;
+  if (calculated.length > 1) rows += `<div class="summary-row"><span class="sl">⚠️ Lãi thấp nhất</span><span class="sv ${worstProduct.profit>=0?'':'neg'}">${worstProduct.name||'SP'} (${worstProduct.profit>=0?'+':''}${fmt(worstProduct.profit)})</span></div>`;
+
+  document.getElementById('summary-rows').innerHTML = rows;
+  summaryCard.classList.add('show');
+}
+
 
 
 // ─── Storage helpers ───
@@ -978,6 +1230,21 @@ function calculate() {
   window._lastCost = cost;
   window._lastAdsPct = adsPct;
 
+  // Lưu kết quả vào product hiện tại
+  const curP = products.find(x => x.id === activeProductId);
+  if (curP) {
+    curP.profit = profit;
+    curP.price = price;
+    curP.cost = cost;
+    curP.adsPct = adsPct;
+    curP.qty = qty;
+    curP.name = document.getElementById('product-name').value || ('Sản phẩm ' + (products.indexOf(curP)+1));
+    document.getElementById('product-name').value = curP.name;
+    saveCurrentState();
+  }
+  renderTabs();
+  renderSummary();
+
   document.getElementById('result-card').classList.add('show');
   ac.classList.add('show');
   document.getElementById('target-card').classList.add('show');
@@ -992,10 +1259,15 @@ function calculate() {
 }
 
 function resetAll() {
+  document.getElementById('product-name').value = '';
   ['cost','price','ads-pct','acc-pct','return-pct','vat-pct','ship','extra'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  // Reset product hiện tại
+  const curP = products.find(x => x.id === activeProductId);
+  if (curP) { curP.profit = null; curP.name = ''; curP.state = null; }
+  renderTabs();
   ['ads-amount-label','acc-amount-label','return-amount-label','vat-amount-label'].forEach(id => {
     document.getElementById(id).textContent = '';
   });
@@ -1013,6 +1285,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', previewPct);
   });
+  // Khởi tạo sản phẩm đầu tiên
+  const firstId = genId();
+  products.push({ id: firstId, name: '', profit: null, price: 0, cost: 0, adsPct: 0, qty: 1, state: null });
+  activeProductId = firstId;
+  renderTabs();
   loadSettings();
 });
 
