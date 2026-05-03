@@ -494,6 +494,66 @@
     -webkit-appearance: none;
   }
   .product-name-input:focus { border-color: var(--accent); }
+
+  /* 2-column layout cho màn hình rộng */
+  @media (min-width: 768px) {
+    body { padding: 24px 32px 60px; max-width: 1200px; margin: 0 auto; }
+
+    .layout-wrap {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 24px;
+      align-items: start;
+    }
+    .col-left { min-width: 0; }
+    .col-right {
+      position: sticky;
+      top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    /* Ẩn các phần kết quả khỏi cột trái */
+    .col-left .result-card,
+    .col-left .advice-card,
+    .col-left .target-card,
+    .col-left .summary-card { display: none !important; }
+
+    /* Luôn hiện kết quả trong cột phải */
+    .col-right .result-card.show,
+    .col-right .advice-card.show,
+    .col-right .target-card.show,
+    .col-right .summary-card.show { display: block; }
+
+    /* Placeholder khi chưa có kết quả */
+    .result-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .result-placeholder .ph-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+    .result-placeholder.hidden { display: none; }
+  }
+
+  /* Mobile: giữ nguyên layout dọc */
+  @media (max-width: 767px) {
+    .layout-wrap { display: block; }
+    .col-right { display: none; }
+    .col-left .result-card,
+    .col-left .advice-card,
+    .col-left .target-card,
+    .col-left .summary-card { display: block; }
+    .result-placeholder { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -514,6 +574,8 @@
 
 
 <!-- Product tabs -->
+<div class="layout-wrap">
+<div class="col-left">
 <div class="product-tabs-wrap" id="product-tabs"></div>
 
 <!-- Sản phẩm -->
@@ -692,6 +754,16 @@
 
 <div class="toast" id="toast"></div>
 
+</div><!-- end col-left -->
+
+<div class="col-right">
+<!-- Placeholder -->
+<div class="result-placeholder" id="result-placeholder">
+  <div class="ph-icon">📊</div>
+  <strong style="color:var(--text);font-size:14px">Kết quả sẽ hiện ở đây</strong><br>
+  Nhập thông tin sản phẩm<br>và nhấn ⚡ Tính Lãi / Lỗ
+</div>
+
 <!-- Kết quả -->
 <div class="result-card" id="result-card">
   <div class="result-header">
@@ -853,6 +925,7 @@ function loadProductState(p) {
     document.getElementById('result-card').classList.add('show');
     document.getElementById('advice-card').classList.add('show');
     document.getElementById('target-card').classList.add('show');
+  updatePlaceholder();
   } else {
     document.getElementById('result-card').classList.remove('show');
     document.getElementById('advice-card').classList.remove('show');
@@ -1019,6 +1092,15 @@ function calcTarget() {
   document.getElementById('target-rows').innerHTML = rows;
   document.getElementById('target-result').style.display = 'block';
 }
+
+
+  // Ẩn/hiện placeholder
+  function updatePlaceholder() {
+    const ph = document.getElementById('result-placeholder');
+    if (!ph) return;
+    const hasResult = document.getElementById('result-card').classList.contains('show');
+    ph.classList.toggle('hidden', hasResult);
+  }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -1248,6 +1330,7 @@ function calculate() {
   document.getElementById('result-card').classList.add('show');
   ac.classList.add('show');
   document.getElementById('target-card').classList.add('show');
+  updatePlaceholder();
 
   setTimeout(() => {
     document.getElementById('result-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1298,5 +1381,7 @@ if (window.Telegram?.WebApp) {
   Telegram.WebApp.expand();
 }
 </script>
+</div><!-- end col-right -->
+</div><!-- end layout-wrap -->
 </body>
 </html>
